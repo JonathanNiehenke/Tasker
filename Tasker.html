@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    
+    <title>Tasker</title>
+    <style>
+        .hide {
+            display: none;
+        }
+        .bold { font-weight: bold; }
+        .taskName { text-align: left }
+        ul.evenlySpaced {
+            margin: 0;
+            padding: 0;
+            list-style-type: none;
+            overflow: auto;
+        }
+        ul.evenlySpaced li {
+            float: left;
+            width: 25%;
+        }
+        input.Btn{
+            float: right;
+        }
+        .critical { background: #FB9898; }
+        .desired { background: #98FB98; }
+        .optional { background: #9898FB; }
+        input[type="range"] { width: 175px; }
+        input[type="radio"].toggle { display: none; }
+        ul#tasksComplete {
+            list-style-type: none;
+        }
+    </style>
+    <script>
+        function formatDate(d) {
+            return d.toDateString() + " -- " + d.toLocaleTimeString();
+        }
+        function changeRadio() {
+            for (El of this.parentElement.children) {
+                if (El.tagName == "LABEL")
+                    El.className = "";
+            }
+            this.nextElementSibling.className = this.id;
+        }
+        function createTask() {
+            let taskEntry = document.getElementById("template").cloneNode(true);
+            let taskNameEl = document.getElementById("taskName");
+            taskEntry.children[0].textContent = taskNameEl.value;
+            taskNameEl.value = "";
+            let DueEl = document.getElementById("taskDue");
+            let d = new Date(DueEl.value);
+            taskEntry.children[2].textContent = formatDate(d);
+            DueEl.value = "";
+            taskEntry.className += " " + document.querySelector(
+                'input[name = "priority"]:checked').id;
+            taskEntry.id = "";
+            document.getElementById("taskContainer").appendChild(taskEntry);
+        }
+        function setPersistant(slider, textBox, value) {
+            slider.setAttribute("value", value);
+            textBox.setAttribute("value", value);
+        }
+        function exposeButton(taskEntry, value) {
+            let removeBtn = taskEntry.lastElementChild.firstElementChild;
+            if (value == 100) {
+                removeBtn.className = "hide";
+                removeBtn.nextElementSibling.className = "Btn";
+            }
+            else {
+                removeBtn.className = "Btn";
+                removeBtn.nextElementSibling.className = "hide";
+            }
+        }
+        function outputSlider() {
+            let textBox = this.nextElementSibling;
+            textBox.value = this.value;
+            setPersistant(this, textBox, this.value);
+            exposeButton(this.parentElement.parentElement, this.value);
+        }
+        function outputText() {
+            let slider = this.previousElementSibling;
+            slider.value = this.value;
+            setPersistant(slider, this, this.value);
+            exposeButton(this.parentElement.parentElement, this.value);
+        }
+        function removeEntry() {
+            let taskEntry = this.parentElement.parentElement;
+            taskEntry.parentElement.removeChild(taskEntry);
+        }
+        function completeEntry() {
+            let taskEntry = this.parentElement.parentElement;
+            let taskName = taskEntry.firstElementChild.textContent;
+            let tasksComplete = document.getElementById("tasksComplete");
+            let completedEntry = document.createElement("li")
+            completedEntry.textContent = (
+                formatDate(new Date()) + ": " + taskName);
+            tasksComplete.append(completedEntry);
+            taskEntry.parentElement.removeChild(taskEntry);
+        }
+    </script>
+</head>
+
+<body>
+    <div id="taskContainer"></div>
+    <div class="hide">
+        <ul class="evenlySpaced" id="template">
+            <li class="taskName bold"></li>
+            <li>
+                <input type="range" min="0" max="100" width="200" value="0" onchange="outputSlider.call(this)">
+                <input type="text" min="0" max="100" value="0" size="1" maxlength="3" onchange="outputText.call(this)">
+            </li>
+            <li class="bold"></li>
+            <li>
+                <input type="button" value="Remove" class="Btn" onclick="removeEntry.call(this)">
+                <input type="button" value="Completed" class="hide Btn" onclick="completeEntry.call(this)">
+            </li>
+        </ul>
+    </div>
+    <hr>
+    <ul class="evenlySpaced" id="template">
+        <li>
+            <label for="taskName" class="bold">Name:</label>
+            <input type="text" id="taskName" size="30" maxlength="30">
+        </li>
+        <li>
+            <span class="bold">Priority: </span>
+            <input type="radio" class="toggle" name="priority" id="critical" onchange="changeRadio.call(this)">
+            <label for="critical">Critical</label>
+            <input type="radio" class="toggle" name="priority" id="desired" onchange="changeRadio.call(this)">
+            <label for="desired">Desired</label>
+            <input type="radio" class="toggle" name="priority" id="optional" onchange="changeRadio.call(this)" checked="">
+            <label for="optional" class="optional">Optional</label>
+        </li>
+        <li>
+            <label for="taskDue" class="bold">Deadline:</label>
+            <input type="datetime-local" class="" id="taskDue">
+        </li>
+        <li>
+            <input type="button" value="Create" class="Btn" onclick="createTask()">
+        </li>
+    </ul>
+    <hr>
+    <ul id="tasksComplete"></ul>
+
+</body></html>
