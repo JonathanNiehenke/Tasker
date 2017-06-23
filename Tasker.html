@@ -9,25 +9,25 @@
         }
         .bold { font-weight: bold; }
         .Name { text-align: left }
-        ul.evenlySpaced4 {
+        ul.Task {
             margin: 0;
             padding: 0;
             list-style-type: none;
             text-align: center;
             overflow: auto;
         }
-        ul.evenlySpaced4 li {
+        ul.Task li {
             float: left;
             width: 25%;
         }
-        ul.evenlySpaced3 {
+        ul.Step {
             margin: 0;
             padding: 0;
             list-style-type: none;
             text-align: center;
             overflow: auto;
         }
-        ul.evenlySpaced3 li {
+        ul.Step li {
             float: left;
             width: 33%;
         }
@@ -49,100 +49,107 @@
         }
 
         function changeRadio() {
-            for (El of document.getElementById("priority").children) {
-                El.className = "";
+            for (El of document.getElementsByName("priority")) {
+                El.parentElement.className = "";
             }
             this.parentElement.className = this.id;
         }
 
-        function StepInputEl(stepInput) {
-            let inputStep = stepInput.cloneNode(true);
-            inputStep.className = "evenlySpaced3";
-            inputStep.id = "";
-            return inputStep;
+        function StepInputEl() {
+            let stepInputEl = document.getElementById(
+                "stepInputTemplate").cloneNode(true);
+            stepInputEl.className = "Step";
+            stepInputEl.id = "";
+            return stepInputEl;
         }
         
         function changeCheckbox() {
-            let stepInput = document.getElementById("inputTemplate");
+            let taskInput = document.getElementById("taskInput");
             if (this.checked) {
-                stepInput.parentElement.append(new StepInputEl(stepInput));
+                taskInput.parentElement.append(new StepInputEl());
             }
             else {
-                while (stepInput.nextElementSibling) {
-                    stepInput.parentElement.removeChild(
-                        stepInput.nextElementSibling);
+                // Generator
+                while (taskInput.nextElementSibling) {
+                    taskInput.parentElement.removeChild(
+                        taskInput.nextElementSibling);
                 }
             }
         }
 
         function addStep() {
-            let thisStep = this.parentElement.parentElement;
-            let taskInput = document.getElementById("inputTemplate");
-            let inputStep = taskInput.cloneNode(true);
-            inputStep.className = "evenlySpaced3";
-            inputStep.id = "";
+            let thisStep = this.closest(".Step");
             thisStep.parentElement.insertBefore(
-                inputStep, thisStep.nextElementSibling);
+                new StepInputEl(), thisStep.nextElementSibling);
         }
 
         function removeStep() {
-            let thisStep = this.parentElement.parentElement;
+            let thisStep = this.closest(".Step");
             thisStep.parentElement.removeChild(thisStep);
         }
 
-        function takeElementValueById(Id) {
-            let El = document.getElementById(Id);
+        function takeElementValue(El) {
             let temp = El.value;
             El.value = "";
             return temp;
         }
 
-        function Task() {
-            let taskEntry = document.createElement("div");
-            let taskInfo = document.getElementById(
-                "entryTemplate").cloneNode(true);
-            taskInfo.id = "";
-            taskInfo.children[0].textContent = (
-                takeElementValueById("taskName"));
-            taskInfo.children[2].textContent = formatDate(
-                new Date(takeElementValueById("taskDue")));
-            taskEntry.className = document.querySelector(
+        function Entry(templateID, inputContainer, Indexes) {
+            let entry = document.getElementById(templateID).cloneNode(true);
+            let Inputs = inputContainer.querySelectorAll("input");
+            entry.id = "";  // Remove cloned id 
+            entry.children[Indexes.Name].textContent = takeElementValue(
+                Inputs[Indexes.inputName]);
+            entry.children[Indexes.Date].textContent = formatDate(
+                new Date(takeElementValue(Inputs[Indexes.inputDate])));
+            return entry;
+        }
+
+        function TaskEntry(taskInputEl) {
+            const Indexes = {
+                "Name": 0, "Date": 2, "inputName": 0, "inputDate": 4};
+            return new Entry("taskTemplate", taskInputEl, Indexes);
+        }
+
+        function StepEntry(stepInputEl) {
+            const Indexes = {
+                "Name": 0, "Date": 2, "inputName": 0, "inputDate": 1};
+            return new Entry("stepTemplate", stepInputEl, Indexes);
+        }
+
+        function Task(taskInputEl) {
+            let taskEntryWrapper = document.createElement("div");
+            taskEntryWrapper.className = document.querySelector(
                 'input[name = "priority"]:checked').id;
-            taskEntry.append(taskInfo);
-            return taskEntry;
+            taskEntryWrapper.append(new TaskEntry(taskInputEl));
+            return taskEntryWrapper;
         }
 
-        function Steps(stepInputEl) {
-            let stepsEntry = document.getElementById(
-                "stepsTemplate").cloneNode(true);
-            stepsEntry.id = "";
-            stepInputs = stepInputEl.querySelectorAll("input");
-            stepsEntry.children[0].textContent = stepInputs[0].value;
-            stepsEntry.children[2].textContent = formatDate(
-                new Date(stepInputs[0].value));
-            return stepsEntry;
-        }
-
-        function pressCreate() {
-            let taskEl = new Task();
-            document.getElementById("taskContainer").appendChild(taskEl);
-            if (this.previousElementSibling.checked) {
-                let stepInput = document.getElementById("inputTemplate");
-                let nInput = stepInput.nextElementSibling;
-                while (nInput) {
-                    taskEl.append(new Steps(nInput));
-                    stepInput.parentElement.removeChild(nInput);
-                    nInput = stepInput.nextElementSibling;
-                }
+        function appendSteps (taskInput, taskDiv) {
+            let nextInput = taskInput.nextElementSibling;
+            while (nextInput) {
+                taskDiv.append(new StepEntry(nextInput));
+                taskInput.parentElement.removeChild(nextInput);
+                nextInput = taskInput.nextElementSibling;
             }
         }
 
-        function setPersistant(inputEl, value) {
+        function pressCreate() {
+            let taskInput = document.getElementById("taskInput");
+            let taskDiv = new Task(taskInput);
+            document.getElementById("taskContainer").appendChild(taskDiv);
+            if (this.previousElementSibling.checked) {
+                this.previousElementSibling.checked = false;
+                appendSteps(taskInput, taskDiv);
+            }
+        }
+
+        function setValuePersistant(inputEl, value) {
             inputEl.setAttribute("value", value);
         }
 
-        function exposeButton(taskEntry, value) {
-            let removeBtn = taskEntry.lastElementChild.firstElementChild;
+        function exposeButton(taskDiv, value) {
+            let removeBtn = taskDiv.lastElementChild.firstElementChild;
             if (value == 100) {
                 removeBtn.className = "hide";
                 removeBtn.nextElementSibling.className = "Btn";
@@ -153,38 +160,39 @@
             }
         }
 
-        function outputSlider() {
+        function outputSlider(expose=true) {
             let textBox = this.nextElementSibling;
             textBox.value = this.value;
-            setPersistant(this, this.value);
-            setPersistant(textBox, this.value);
-            exposeButton(this.parentElement.parentElement, this.value);
+            setValuePersistant(this, this.value);
+            setValuePersistant(textBox, this.value);
+            if (expose)
+                exposeButton(this.closest(".Task"), this.value);
         }
 
-        function outputText() {
+        function outputText(expose=true) {
             let slider = this.previousElementSibling;
             slider.value = this.value;
-            setPersistant(this, this.value);
-            setPersistant(slider, this.value);
-            exposeButton(this.parentElement.parentElement, this.value);
+            setValuePersistant(this, this.value);
+            setValuePersistant(slider, this.value);
+            if (expose)
+                exposeButton(this.closest(".Task"), this.value);
         }
 
         function removeEntry() {
-            let taskEntry = this.parentElement.parentElement.parentElement;
-            taskEntry.parentElement.removeChild(taskEntry);
+            let taskDiv = this.closest("div");
+            taskDiv.parentElement.removeChild(taskDiv);
+        }
+
+        function Record(taskName) {
+            let complete = document.createElement("li")
+            complete.textContent = formatDate(new Date()) + ": " + taskName;
+            return complete;
         }
 
         function completeEntry() {
-            let taskEntry = this.parentElement.parentElement;
-            let taskName = taskEntry.firstElementChild.textContent;
-            let tasksComplete = document.getElementById("tasksComplete");
-            let completedEntry = document.createElement("li")
-            completedEntry.textContent = (
-                formatDate(new Date()) + ": " + taskName);
-            tasksComplete.append(completedEntry);
-            console.log(taskEntry.parentElement);
-            taskEntry.parentElement.parentElement.removeChild(
-                taskEntry.parentElement);
+            tasksComplete.append(new Record(
+                this.closest(".Task").querySelector(".Name").textContent));
+            removeEntry.call(this);
         }
 
     </script>
@@ -193,7 +201,7 @@
 <body>
     <div id="taskContainer"></div>
     <div class="hide">
-        <ul class="evenlySpaced4" id="entryTemplate">
+        <ul class="Task" id="taskTemplate">
             <li class="Name bold"></li>
             <li>
                 <input type=range min=0 max=100 width=200 value=0
@@ -209,65 +217,69 @@
                        onClick="completeEntry.call(this)"/>
             </li>
         </ul>
-        <ul class="evenlySpaced3" id="stepsTemplate">
-            <li class="bold"></li>
+        <ul class="Step" id="stepInputTemplate">
             <li>
-                <input type=range min=0 max=100 width=200 value=0
-                     onChange="outputSlider.call(this)" />
-                <input type=text min=0 max=100 value=0 size=1 maxlength=3
-                       onChange="outputText.call(this)" />
-            </li>
-            <li class="bold"></li>
-        </ul>
-    </div>
-    <hr/>
-    <div>
-        <ul class="evenlySpaced4">
-            <li>
-                <label for="taskName" class="bold">Name:</label>
-                <input type=text id="taskName" size=30 maxlength=30 />
-            </li>
-            <li id="priority">
-	            <span class="bold">Priority:</span>
-                <label class="">Critical
-                    <input type=radio class="toggle" name="priority"
-                           id="critical" onChange="changeRadio.call(this)" />
-                </label>
-                <label class="">Desired
-                    <input type=radio class="toggle" name="priority"
-                           id="desired" onChange="changeRadio.call(this)" />
-                </label>
-                <label class="optional">Optional
-                    <input type=radio class="toggle" name="priority"
-                           id="optional" onChange="changeRadio.call(this)"
-                           checked />
+                <label >Step Name:
+                    <input type=text size=30 maxlength=30 />
                 </label>
             </li>
             <li>
-                <label for="taskDue" class="bold">Deadline:</label>
-                <input type=datetime-local class id="taskDue" />
-            </li>
-            <li>
-                <input type="checkbox" value="true"
-                       onChange="changeCheckbox.call(this)"> Steps</input>
-                <input type=button value="Create" class="Btn"
-                       onClick="pressCreate.call(this)" />
-            </li>
-        </ul>
-        <ul class="hide" id="inputTemplate">
-            <li>
-                <label for="stepName" class="bold">Name:</label>
-                <input type=text id="stepName" size=30 maxlength=30 />
-            </li>
-            <li>
-                <label for="stepDue" class="bold">Deadline:</label>
-                <input type=datetime-local class id="stepDue" />
+                <label class="bold">Deadline:
+                    <input type=datetime-local />
+                </label>
             </li>
             <li>
                 <input type=button value="Remove" class="Btn"
                        onClick="removeStep.call(this)" />
                 <input type=button value="Add" class="Btn"
                        onClick="addStep.call(this)" />
+            </li>
+        </ul>
+        <ul class="Step" id="stepTemplate">
+            <li class="bold"></li>
+            <li>
+                <input type=range min=0 max=100 width=200 value=0
+                     onChange="outputSlider.call(this, false)" />
+                <input type=text min=0 max=100 value=0 size=1 maxlength=3
+                       onChange="outputText.call(this, false)" />
+            </li>
+            <li class="bold"></li>
+        </ul>
+    </div>
+    <hr/>
+    <div>
+        <ul class="Task" id="taskInput">
+            <li>
+                <label class="bold">Name:
+                    <input type=text size=30 maxlength=30 />
+                </label>
+            </li>
+            <li>
+	            <span class="bold">Priority:</span>
+                <label class="">Critical
+                    <input type=radio name="priority" class="toggle"
+                           id="critical" onChange="changeRadio.call(this)" />
+                </label>
+                <label class="">Desired
+                    <input type=radio name="priority" class="toggle"
+                           id="desired" onChange="changeRadio.call(this)" />
+                </label>
+                <label class="optional">Optional
+                    <input type=radio name="priority" class="toggle"
+                           id="optional" onChange="changeRadio.call(this)"
+                           checked />
+                </label>
+            </li>
+            <li>
+                <label class="bold">Deadline:
+                    <input type=datetime-local />
+                </label>
+            </li>
+            <li>
+                <input type="checkbox" value="true"
+                       onChange="changeCheckbox.call(this)"> Steps</input>
+                <input type=button value="Create" class="Btn"
+                       onClick="pressCreate.call(this)" />
             </li>
         </ul>
     </div>
