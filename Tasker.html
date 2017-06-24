@@ -4,48 +4,54 @@
     <meta charset="UTF-8">
     <title>Tasker</title>
     <style>
-        .hide {
-            display: none;
-        }
+        .hide { display: none; }
         .bold { font-weight: bold; }
-        .Name { text-align: left }
+        .Name { text-align: left; font-weight: bold; }
+        .stepName { text-align: left; text-indent: 1cm; font-weight: bold; }
+        .Date { text-align: left; font-weight: bold; }
         ul.Task {
+            display: flex;
+            justify-content: space-between;
+            list-style-type: none;
             margin: 0;
             padding: 0;
-            list-style-type: none;
-            text-align: center;
-            overflow: auto;
         }
-        ul.Task li {
-            float: left;
-            width: 25%;
-        }
+        ul.Task li { width: 25%; }
         ul.Step {
+            display: flex;
+            justify-content: space-between;
+            list-style-type: none;
             margin: 0;
             padding: 0;
-            list-style-type: none;
-            text-align: center;
-            overflow: auto;
         }
-        ul.Step li {
-            float: left;
-            width: 33%;
-        }
-        input.Btn{
-            float: right;
+        ul.Step li { width: 33%; }
+        input.Btn{ float: right; }
+        #taskInput {
+            -moz-user-select: -moz-none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            -o-user-select: none;
+            user-select: none;
         }
         .critical { background: #FB9898; }
         .desired { background: #98FB98; }
         .optional { background: #9898FB; }
         input[type="range"] { width: 175px; }
         input[type="radio"].toggle { display: none; }
-        ul#tasksComplete {
-            list-style-type: none;
-        }
+        ul#tasksComplete { list-style-type: none; }
     </style>
     <script>
+        function formatTime(d) {
+            let Minutes = d.getMinutes();
+            let minStr = Minutes < 10 ? "0" + Minutes.toString() : Minutes;
+            return " @" + d.getHours() + ":" + minStr;
+        }
+
         function formatDate(d) {
-            return d.toDateString() + " -- " + d.toLocaleTimeString();
+            if (d.valueOf())
+                return d.toDateString() + formatTime(d);
+            else
+                return "";
         }
 
         function changeRadio() {
@@ -195,21 +201,58 @@
             removeEntry.call(this);
         }
 
+        getDate = function() {  // Calculate once and restrict NAN_DATE
+            NAN_DATE = new Date((new Date())*2);  // to closure scope.
+            function getDateClosure(taskDiv) {
+                let dateRepr = taskDiv.querySelector(".Date").textContent;
+                return (dateRepr ? new Date(dateRepr.replace(" @", " "))
+                        : NAN_DATE);
+            }
+            return getDateClosure;
+        }();
+
+        function byDate(taskDiv1, taskDiv2) {
+            return getDate(taskDiv1).getTime() - getDate(taskDiv2).getTime();
+        }
+
+        function getPriority(taskDiv) {
+            switch (taskDiv.className) {
+                case "optional": return 2;
+                case "desired": return 1;
+                case "critical": return 0;
+                default: throw ("Improper priority: " + taskDiv.className);
+            }
+        }
+
+        function byPriority(taskDiv1, taskDiv2) {
+            return getPriority(taskDiv1) - getPriority(taskDiv2);
+        }
+
+        function sortTasks(sortFunc) {
+            let taskContainer = document.getElementById("taskContainer");
+            let Sorted = [].slice.call(taskContainer.children).sort(sortFunc);
+            Sorted.forEach(function(t){ taskContainer.append(t); });
+        }
+
     </script>
 </head>
 
 <body>
+    <div>Sort-by:
+        <input type="button" value="Date" onclick="sortTasks(byDate)" />
+        <input type="button" value="Priority" onclick="sortTasks(byPriority)" />
+    </div>
     <div id="taskContainer"></div>
     <div class="hide">
         <ul class="Task" id="taskTemplate">
-            <li class="Name bold"></li>
+            <li class="Name"></li>
             <li>
                 <input type=range min=0 max=100 width=200 value=0
                      onChange="outputSlider.call(this)" />
                 <input type=text min=0 max=100 value=0 size=1 maxlength=3
                        onChange="outputText.call(this)" />
             </li>
-            <li class="bold"></li>
+            <li class="Date"></li>
             <li>
                 <input type="button" value="Remove" class="Btn"
                        onClick="removeEntry.call(this)"/>
@@ -219,7 +262,7 @@
         </ul>
         <ul class="Step" id="stepInputTemplate">
             <li>
-                <label >Step Name:
+                <label>Step Name:
                     <input type=text size=30 maxlength=30 />
                 </label>
             </li>
@@ -236,7 +279,7 @@
             </li>
         </ul>
         <ul class="Step" id="stepTemplate">
-            <li class="bold"></li>
+            <li class="stepName"></li>
             <li>
                 <input type=range min=0 max=100 width=200 value=0
                      onChange="outputSlider.call(this, false)" />
