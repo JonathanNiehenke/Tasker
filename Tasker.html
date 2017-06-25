@@ -228,10 +228,26 @@
             return getPriority(taskDiv1) - getPriority(taskDiv2);
         }
 
-        function sortTasks(sortFunc) {
+        function byName(taskDiv1, taskDiv2) {
+            function getName(taskDiv) {
+                return taskDiv.querySelector(".Name").textContent.toLowerCase();
+            }
+            return getName(taskDiv2) < getName(taskDiv1);
+        }
+
+        function byProgress(taskDiv1, taskDiv2) {
+            function getProgress(taskDiv) {
+                let Slider =  taskDiv.querySelector("input[type='range']");
+                return parseInt(Slider.value);
+            }
+            return getProgress(taskDiv2) < getProgress(taskDiv1);
+        }
+
+        function sortTasks(sortFunc, reverse=false) {
+            function appendTask(t){ taskContainer.append(t); }
             let taskContainer = document.getElementById("taskContainer");
             let Sorted = [].slice.call(taskContainer.children).sort(sortFunc);
-            Sorted.forEach(function(t){ taskContainer.append(t); });
+            (reverse ? Sorted.reverse() : Sorted).forEach(appendTask);
         }
 
     </script>
@@ -239,8 +255,12 @@
 
 <body>
     <div>Sort-by:
+        <input type="button" value="Name &#9650" onclick="sortTasks(byName)" />
+        <input type="button" value="Name &#9660" onclick="sortTasks(byName, true)" />
         <input type="button" value="Date" onclick="sortTasks(byDate)" />
         <input type="button" value="Priority" onclick="sortTasks(byPriority)" />
+        <input type="button" value="Progress &#9650" onclick="sortTasks(byProgress)" />
+        <input type="button" value="Progress &#9660" onclick="sortTasks(byProgress, true)" />
     </div>
     <div id="taskContainer"></div>
     <div class="hide">
