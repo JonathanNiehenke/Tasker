@@ -211,8 +211,15 @@
             return getDateClosure;
         }();
 
+        function byNumericValue(value1, value2) {
+            if (value1 < value2) return -1;
+            if (value1 > value2) return 1;
+            return 0;
+        }
+
         function byDate(taskDiv1, taskDiv2) {
-            return getDate(taskDiv1).getTime() - getDate(taskDiv2).getTime();
+            return byNumericValue(getDate(taskDiv1).getTime(),
+                                  getDate(taskDiv2).getTime());
         }
 
         function getPriority(taskDiv) {
@@ -225,14 +232,15 @@
         }
 
         function byPriority(taskDiv1, taskDiv2) {
-            return getPriority(taskDiv1) - getPriority(taskDiv2);
+            return byNumericValue(getPriority(taskDiv1),
+                                  getPriority(taskDiv2));
         }
 
         function byName(taskDiv1, taskDiv2) {
             function getName(taskDiv) {
                 return taskDiv.querySelector(".Name").textContent.toLowerCase();
             }
-            return getName(taskDiv2) < getName(taskDiv1);
+            return getName(taskDiv1).localeCompare(getName(taskDiv2));
         }
 
         function byProgress(taskDiv1, taskDiv2) {
@@ -240,7 +248,8 @@
                 let Slider =  taskDiv.querySelector("input[type='range']");
                 return parseInt(Slider.value);
             }
-            return getProgress(taskDiv2) < getProgress(taskDiv1);
+            return byNumericValue(getProgress(taskDiv2),
+                                  getProgress(taskDiv1));
         }
 
         function sortTasks(sortFunc, reverse=false) {
